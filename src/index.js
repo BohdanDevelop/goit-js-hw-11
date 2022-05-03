@@ -87,11 +87,39 @@ async function onSubmitClick(event) {
         checksTheEnd(params.page, availablePages);
         Notiflix.Notify.success(`Hooray! We found ${responseTotalHits} images.`);
 
+        window.addEventListener('scroll', async () => {
+          if (
+            window.scrollY + window.innerHeight >= document.documentElement.scrollHeight &&
+            params.page < availablePages
+          ) {
+            params.page += 1;
+            const { responseDataHits } = await fetchPhotos(params);
+            const rendering = await renderMarkup(responseDataHits, 'beforeend');
+            checksTheEnd(params.page, availablePages);
+            const { height: cardHeight } = document
+              .querySelector('.gallery')
+              .firstElementChild.getBoundingClientRect();
+
+            window.scrollBy({
+              top: cardHeight * 2,
+              behavior: 'smooth',
+            });
+          }
+        });
+
         loadMoreRef.addEventListener('click', async () => {
           params.page += 1;
           const { responseDataHits } = await fetchPhotos(params);
           const rendering = await renderMarkup(responseDataHits, 'beforeend');
           checksTheEnd(params.page, availablePages);
+          const { height: cardHeight } = document
+            .querySelector('.gallery')
+            .firstElementChild.getBoundingClientRect();
+
+          window.scrollBy({
+            top: cardHeight * 2,
+            behavior: 'smooth',
+          });
         });
       } else Notiflix.Notify.failure('No matches');
     } catch (error) {
