@@ -2,6 +2,7 @@ import './sass/main.scss';
 import Notiflix from 'notiflix';
 import axios from 'axios';
 import SimpleLightbox from 'simplelightbox';
+import debounce from 'lodash.debounce';
 
 const URL = 'https://pixabay.com/api/';
 const key = '27157182-78441902fcb5ec82df186427b';
@@ -43,7 +44,6 @@ function renderMarkup(html, where) {
     })
     .join('');
   galleryRef.insertAdjacentHTML(where, markup);
-  console.log(document.querySelector('.gallery a'));
 }
 async function fetchPhotos(params) {
   const response = await axios.get(URL, { params });
@@ -79,7 +79,7 @@ async function onSubmitClick(event) {
     try {
       const { responseDataHits, responseLength, responseTotalHits } = await fetchPhotos(params);
       const availablePages = Math.ceil(responseTotalHits / 50);
-      console.log(availablePages);
+
       if (responseLength > 0) {
         renderMarkup(responseDataHits, 'afterbegin');
         let gallery = new SimpleLightbox('.gallery a ');
@@ -87,25 +87,29 @@ async function onSubmitClick(event) {
         checksTheEnd(params.page, availablePages);
         Notiflix.Notify.success(`Hooray! We found ${responseTotalHits} images.`);
 
-        window.addEventListener('scroll', async () => {
-          if (
-            window.scrollY + window.innerHeight >= document.documentElement.scrollHeight &&
-            params.page < availablePages
-          ) {
-            params.page += 1;
-            const { responseDataHits } = await fetchPhotos(params);
-            const rendering = await renderMarkup(responseDataHits, 'beforeend');
-            checksTheEnd(params.page, availablePages);
-            const { height: cardHeight } = document
-              .querySelector('.gallery')
-              .firstElementChild.getBoundingClientRect();
+        window.addEventListener(
+          'scroll',
+          debounce(async () => {
+            console.log('hey');
+            if (
+              window.scrollY + window.innerHeight >= document.documentElement.scrollHeight &&
+              params.page < availablePages
+            ) {
+              params.page += 1;
+              const { responseDataHits } = await fetchPhotos(params);
+              const rendering = await renderMarkup(responseDataHits, 'beforeend');
+              checksTheEnd(params.page, availablePages);
+              const { height: cardHeight } = document
+                .querySelector('.gallery')
+                .firstElementChild.getBoundingClientRect();
 
-            window.scrollBy({
-              top: cardHeight * 2,
-              behavior: 'smooth',
-            });
-          }
-        });
+              window.scrollBy({
+                top: cardHeight * 2,
+                behavior: 'smooth',
+              });
+            }
+          }, 500),
+        );
 
         loadMoreRef.addEventListener('click', async () => {
           params.page += 1;
